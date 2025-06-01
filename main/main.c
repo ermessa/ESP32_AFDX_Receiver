@@ -11,10 +11,11 @@
 #include "nvs_flash.h"
 #include "esp_netif.h"
 #include "afdx.h"
+#include "crc32.h"
 
 //INSERT YOUR LOCAL NETWORK DATA
-#define WIFI_SSID "Fenix-39239-2.4G"
-#define WIFI_PASS "50034192"
+#define WIFI_SSID "ESP32_SENDER_AP"
+#define WIFI_PASS "123qweasd"
 
 //CONFIGURE STATIC DEVICE
 #define ESP_IP "192.168.1.150"
@@ -64,8 +65,7 @@ void wifiInitSta()
     esp_event_loop_create_default();
     esp_netif_create_default_wifi_sta();
     wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
-    esp_wifi_init(&config);
-
+    esp_wifi_init(&config);  
     wifi_config_t wifiConfig =
     {
         .sta = 
@@ -96,7 +96,17 @@ void vlReceiveTask(void *param)
         int len = recvfrom(sock, &frame, sizeof(frame), 0, NULL, NULL);
         if (len > 0 && AfdxValidateFrame(&frame))
         {
+            int missionCode;
+            float altitude;
+            uint32_t timeMs;
+
             AfdxPrintFrame(&frame);
+            AfdxParsePayload(&frame, &missionCode, &altitude, &timeMs);
+
+            printf(">>> Parsed Data :\n");
+            printf("    Mission Code: %d\n", missionCode);
+            printf("    Altitude    : %.1f m\n", altitude);
+            printf("    Timestamp   : %lu ms\n", timeMs);
         }
     }
 }
@@ -107,5 +117,7 @@ void app_main(void)
     wifiInitSta();
     configureStaticIp();
     esp_wifi_connect();
+    crc32Init();
+
     xTaskCreate(vlReceiveTask, "VL_RECEIVE", 4096, NULL, 5, NULL);
 }
