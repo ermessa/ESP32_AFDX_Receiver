@@ -13,7 +13,7 @@ bool AfdxValidateFrame(const AfdxFrame_t *frame)
     }
 
     const uint8_t *rawData = (const uint8_t *)frame;
-    uint32_t crcCalc = crc32(rawData, sizeof(AfdxFrame_t) - sizeof(uint32_t));
+    uint32_t crcCalc = Crc32(rawData, sizeof(AfdxFrame_t) - sizeof(uint32_t));
 
     uint32_t crcReceived = ntohl(frame->crc32);
 

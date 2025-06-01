@@ -25,18 +25,18 @@
 //PROTOTYPES
 
 /// @brief INIT WI-FI STATION WITH DEFAULT CONFIGURATION
-void wifiInitSta(void);
+void WifiInitSta(void);
 
 /// @brief 
 /// @param param 
-void vlReceiveTask(void *param);
+void VlReceiveTask(void *param);
 
 /// @brief CONFIGURE STATIC IP
-void configureStaticIp();
+void ConfigureStaticIp();
 
 //FUNCTIONS
 
-void configureStaticIp()
+void ConfigureStaticIp()
 {
     esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
     if (netif == NULL)
@@ -59,7 +59,7 @@ void configureStaticIp()
     esp_netif_set_ip_info(netif, &ipInfo);
 }
 
-void wifiInitSta()
+void WifiInitSta()
 {
     esp_netif_init();
     esp_event_loop_create_default();
@@ -80,7 +80,7 @@ void wifiInitSta()
     esp_wifi_start();
 }
 
-void vlReceiveTask(void *param)
+void VlReceiveTask(void *param)
 {
     int port = 6000;
     int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
@@ -114,10 +114,10 @@ void vlReceiveTask(void *param)
 void app_main(void)
 {
     nvs_flash_init();
-    wifiInitSta();
-    configureStaticIp();
+    WifiInitSta();
+    ConfigureStaticIp();
     esp_wifi_connect();
-    crc32Init();
+    Crc32Init();
 
-    xTaskCreate(vlReceiveTask, "VL_RECEIVE", 4096, NULL, 5, NULL);
+    xTaskCreate(VlReceiveTask, "VL_RECEIVE", 4096, NULL, 5, NULL);
 }

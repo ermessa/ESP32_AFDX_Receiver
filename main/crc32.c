@@ -5,7 +5,7 @@
 static uint32_t crc32Table[256];
 static int tableInitialized = 0;
 
-void crc32Init(void)
+void Crc32Init(void)
 {
     uint32_t polynomial = BIT_REVERSED_CRC32;
 
@@ -22,11 +22,11 @@ void crc32Init(void)
     tableInitialized = 1;
 }
 
-uint32_t crc32(const uint8_t *data, size_t len)
+uint32_t Crc32(const uint8_t *data, size_t len)
 {
     if(!tableInitialized)
     {
-        crc32Init();
+        Crc32Init();
     }
 
     uint32_t crc = 0xffffffff;

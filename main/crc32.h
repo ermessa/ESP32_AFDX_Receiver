@@ -9,13 +9,13 @@ extern "C" {
 #endif
 
 /// @brief INIT CRC32
-void crc32Init(void);
+void Crc32Init(void);
 
 /// @brief CALCULATE CHECKSUM
 /// @param data INPUT DATA
 /// @param len DATA SIZE
 /// @return CHECKSUM RESULT
-uint32_t crc32(const uint8_t *data, size_t len);
+uint32_t Crc32(const uint8_t *data, size_t len);
 
 #ifdef __cplusplus
 }
