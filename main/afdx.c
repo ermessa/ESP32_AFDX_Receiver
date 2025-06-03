@@ -4,6 +4,7 @@
 #include "afdx.h"
 #include "crc32.h"
 #include "arpa/inet.h"
+#include "esp_log.h"
 
 bool AfdxValidateFrame(const AfdxFrame_t *frame)
 {
@@ -30,9 +31,25 @@ void AfdxPrintFrame(const AfdxFrame_t *frame)
     printf("----------------------------------------\n");
 }
 
-void AfdxParsePayload(const AfdxFrame_t *frame, int *missionCode, float *altitude, uint32_t *timeMs)
+void AfdxParsePayload(const AfdxFrame_t *frame, int payloadLen, int *missionCode, float *altitude, uint32_t *timeMs)
 {
-    if (!frame || !missionCode || !altitude || !timeMs) return;
+    char payloadCpy[50];
 
-    sscanf (frame->payload, "M%d ALT:%fft T:%lu", missionCode, altitude, timeMs);
+    if (payloadLen >= sizeof(payloadCpy))
+    {
+        payloadLen = sizeof(payloadCpy) - 1;
+    }
+
+    memcpy(payloadCpy, frame->payload, payloadLen);
+    payloadCpy[payloadLen] = '\0';
+    ESP_LOGI("PARSER", "Gross payload: %s", payloadCpy);
+    
+    int parsed = sscanf (payloadCpy, "M%d|ALT:%f ft|T:%lu ms", missionCode, altitude, timeMs);
+    if (parsed != 3)
+    {
+        ESP_LOGW("PARSER", "Error regarding payload parsing: '%s'", payloadCpy);
+        *missionCode = -1;
+        *altitude = -1.0f;
+        *timeMs = 0;
+    }
 }

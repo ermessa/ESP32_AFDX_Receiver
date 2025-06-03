@@ -23,9 +23,10 @@ void AfdxPrintFrame(const AfdxFrame_t *frame);
 
 /// @brief PARSE AFDX PAYLOAD INTO SEPARATE VARIABLES
 /// @param frame POINTER TO AFDX FRAME
+/// @param payloadLen PAYLOAD LENGTH
 /// @param missionCode OUTPUT POINTER FOR MISSION CODE
 /// @param altitude OUTPUT POINTER FOR ALTITUDE
 /// @param timeMs OUTPUT POINTER FOR TIMESTAMP
-void AfdxParsePayload(const AfdxFrame_t *frame, int *missionCode, float *altitude, uint32_t *timeMs);
+void AfdxParsePayload(const AfdxFrame_t *frame, int payloadLen, int *missionCode, float *altitude, uint32_t *timeMs);
 
 #endif
