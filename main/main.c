@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "string.h"
 #include "sys/socket.h"
 #include "netinet/in.h"
@@ -8,12 +9,13 @@
 #include "esp_wifi.h"
 #include "esp_log.h"
 #include "esp_event.h"
+#include "esp_timer.h"
 #include "nvs_flash.h"
 #include "esp_netif.h"
 #include "afdx.h"
 #include "crc32.h"
 
-//INSERT TARGET NETWORK DATA
+//TARGET NETWORK DATA
 #define WIFI_SSID "ESP32_SENDER_AP"
 #define WIFI_PASS "123qweasd"
 
@@ -26,20 +28,40 @@
 #define TARGET_IP "192.168.1.149"
 #define TARGET_PORT 7000
 
+//GLOBAL VARIABLES
+static uint32_t numCycles = 0;
+static bool start = false;
+
 //PROTOTYPES
 
 /// @brief INIT WI-FI STATION WITH DEFAULT CONFIGURATION
 void WifiInitSta(void);
 
-
+/// @brief GET THE TARGET IP
+/// @param arg EMPTY
+/// @param eventBase EMPTY
+/// @param eventId EMPTY
+/// @param eventData EMPTY
 void OnGotIp(void *arg, esp_event_base_t eventBase, int32_t eventId, void *eventData);
 
-/// @brief 
-/// @param param 
+/// @brief RECEIVE VIRTUAL-LINK
+/// @param param EMPTY PARAM
 void VlReceiveTask(void *param);
 
 /// @brief CONFIGURE STATIC IP
 void ConfigureStaticIp();
+
+/// @brief CREATE AND WRITE TIMESTAMP IN A FILE FOR DEBUG
+/// @param fileName FILENAME WITH EXTENSION
+/// @param timestamp TIME TO PRINT IN THE FILE
+/// @param status STATUS FOR REGISTER
+void WriteFile(char* fileName, int64_t timestamp, char status [32]);
+
+/// @brief CLEAR BUFFER
+void FlushStdin();
+
+/// @brief WAIT SERIAL COMMAND TO ENABLE THE ROUTINE FLOW
+void WaitForStartCommand();
 
 //FUNCTIONS
 
@@ -124,6 +146,8 @@ void VlReceiveTask(void *param)
 
     while (true)
     {
+        int64_t startTime = esp_timer_get_time();
+        char status [32] = "";
         AfdxFrame_t frame;
         struct timeval timeout = 
         {
@@ -138,6 +162,7 @@ void VlReceiveTask(void *param)
         {
             if (AfdxValidateFrame(&frame))
             {
+                strcpy(status, "VALID_PAYLOAD");
                 int missionCode;
                 float altitude;
                 uint32_t timeMs;
@@ -154,6 +179,7 @@ void VlReceiveTask(void *param)
             }
             else
             {
+                strcpy(status, "INVALID_CRC32");
                 ESP_LOGW("RECEIVER", "Invalid CRC32 detected!");
 
                 const char* errorMsg = "ERROR: CRC32 mismatch in received frame.";
@@ -162,13 +188,52 @@ void VlReceiveTask(void *param)
         }
         else
         {
+            strcpy(status, "TIMEOUT_OR_NON-PACKET_RECEIVED");
             ESP_LOGW("RECEIVER", "No packet received or timeout.");
+        }
+        int64_t endTime = esp_timer_get_time();
+        ESP_LOGI("RECEIVER: VLRECEIVETASK_TIMESTAMP", "%lld ms", (endTime - startTime)/1000);
+        WriteFile("RECEIVER_LOG", endTime - startTime, status);
+    }
+}
+
+void WriteFile(char* fileName, int64_t timestamp, char status [32])
+{
+    numCycles++;
+    printf("%s|%lld|%s|%ld\n", fileName, timestamp, status, numCycles); 
+}
+
+void FlushStdin()
+{
+    while (getchar() != -1) ;
+}
+
+void WaitForStartCommand()
+{
+    char input[16] = {0};
+    while(!start)
+    {
+        printf("ID=RECEIVER\n");
+        for (int i = 0; i < 20; i++)
+        {
+            if (fgets(input, sizeof(input), stdin))
+            {
+                if (strncmp(input, "start", 5) == 0)
+                {
+                    start = true;
+                    break;
+                }
+            }
+            vTaskDelay(pdMS_TO_TICKS(100));
         }
     }
 }
 
 void app_main(void)
 {
+    FlushStdin();
+    WaitForStartCommand();
+
     Crc32Init();
     nvs_flash_init();
     ESP_ERROR_CHECK(esp_netif_init());
